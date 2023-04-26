@@ -12,18 +12,30 @@ To use dbconfig, you can load the configuration from a JSON or YAML file or dire
 
 ```yaml
 mysql:
+  type: mysql
   host: localhost
   port: 3306
   user: root
   password: 12345
   database: mydb
+  ssl:        
+    mode: disable
+    cert: /path/to/cert
+    key: /path/to/key
+    rootcert: /path/to/rootcert
 
-mongodb:
+postgresql:
+  type: postgresql
   host: localhost
-  port: 27017
+  port: 5432
   user: root
   password: 12345
   database: mydb
+  ssl:
+    mode: disable
+    cert: /path/to/cert
+    key: /path/to/key
+    rootcert: /path/to/rootcert
 ```
 You can also set environment variables for each database configuration, following the naming convention DB_<DATABASE_NAME>_<CONFIG_KEY>. For example, to set the MySQL host and port, you would set DB_MYSQL_HOST and DB_MYSQL_PORT.
 
