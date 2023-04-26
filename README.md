@@ -8,36 +8,24 @@ You can install dbconfig via go get:
 go get github.com/fkmatsuda-dev/dbconfig
 ```
 ## Usage
-To use dbconfig, you can load the configuration from a JSON or YAML file or directly from environment variables. Here is an example YAML configuration file:
+To use dbconfig, you can load the configuration from a JSON file or directly from environment variables. Here is an example JSON configuration file:
 
-```yaml
-mysql:
-  type: mysql
-  host: localhost
-  port: 3306
-  user: root
-  password: 12345
-  database: mydb
-  ssl:        
-    mode: disable
-    cert: /path/to/cert
-    key: /path/to/key
-    rootcert: /path/to/rootcert
-
-postgresql:
-  type: postgresql
-  host: localhost
-  port: 5432
-  user: root
-  password: 12345
-  database: mydb
-  ssl:
-    mode: disable
-    cert: /path/to/cert
-    key: /path/to/key
-    rootcert: /path/to/rootcert
-```
-You can also set environment variables for each database configuration, following the naming convention DB_<DATABASE_NAME>_<CONFIG_KEY>. For example, to set the MySQL host and port, you would set DB_MYSQL_HOST and DB_MYSQL_PORT.
+```json
+{
+  "type": "POSTGRESQL",
+  "host": "localhost",
+  "port": 5432,
+  "user": "postgres",
+  "password": "postgres",
+  "database": "postgres",
+  "ssl": {
+    "mode": "verify-full",
+    "ca": "ca.crt",
+    "key": "client.key",
+    "cert": "client.crt"
+  }
+}```
+You can also set environment variables for each database configuration parmeter, following the naming convention DB_<PARAMETER>. For example, to set the host and port, you would set DB_HOST and DB_PORT, to set SSL parameters you can use DB_SSL_<PARAMETER>.
 
 After loading the configuration, you can use it in your project to connect to the database. Here is an example of how to use dbconfig to get the MySQL database connection configurations:
 
@@ -47,20 +35,18 @@ import (
 )
 
 func main() {
-// Load configuration from a YAML file
-config, err := dbconfig.LoadFromYAMLFile("path/to/config.yml")
-if err != nil {
-// handle error
-}
+    // Load configuration from a dbconfig.json file if exists or from environment variables
+    config, err := dbconfig.LoadConfig("path/to/config/")
+    if err != nil {
+    // handle error
+    }
+    
+    // Load configuration from environment variables
+    config, err := dbconfig.LoadFromEnv()
+    if err != nil {
+    // handle error
+    }
 
-// Load configuration from environment variables
-config, err := dbconfig.LoadFromEnv()
-if err != nil {
-// handle error
-}
-
-mysqlConfig := config.Get("mysql")
-// use mysqlConfig to connect to the database
 }
 ```
 The mysqlConfig object contains the MySQL database connection information. You can use it to connect to the database in your project.
