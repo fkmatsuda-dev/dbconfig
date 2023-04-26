@@ -22,25 +22,49 @@
 
 package dbconfig
 
-import "github.com/fkmatsuda-dev/commons/errorex"
-
-const (
-	ErrorCodeDbTypeParseError     = "DBCONFIG-1001"
-	ErrorCodeSSLModeParseError    = "DBCONFIG-1005"
-	ErrorCodeConfigFileNotFound   = "DBCONFIG-1011"
-	ErrorCodeConfigFileNotLoaded  = "DBCONFIG-1012"
-	ErrorCodeEnvConfigNotLoaded   = "DBCONFIG-1013"
-	ErrorCodeConfigFileParseError = "DBCONFIG-1014"
-	ErrorCodeEnvConfigParseError  = "DBCONFIG-1015"
+import (
+	"encoding/json"
+	"testing"
 )
 
-func init() {
-	// Register error codes
-	errorex.RegisterErrorCode(ErrorCodeDbTypeParseError, "DbType parse error")
-	errorex.RegisterErrorCode(ErrorCodeSSLModeParseError, "SSLMode parse error")
-	errorex.RegisterErrorCode(ErrorCodeConfigFileNotFound, "Configuration file not found")
-	errorex.RegisterErrorCode(ErrorCodeConfigFileNotLoaded, "Configuration file not loaded")
-	errorex.RegisterErrorCode(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded")
-	errorex.RegisterErrorCode(ErrorCodeEnvConfigParseError, "Environment configuration cannot be parsed")
-	errorex.RegisterErrorCode(ErrorCodeConfigFileParseError, "Configuration file parse error")
+func TestDbConfig(t *testing.T) {
+
+	// Test marshal and unmarshal
+	t.Run("Test marshal and unmarshal", func(t *testing.T) {
+		config := Config{
+			Type:     DbTypePostgres,
+			Host:     "localhost",
+			Port:     5432,
+			Database: "postgres",
+			User:     "postgres",
+			Password: "postgres",
+			SSL: &SSLConfig{
+				Mode: SSLModeVerifyFull,
+				Ca:   "ca.crt",
+				Cert: "client.crt",
+				Key:  "client.key",
+			},
+		}
+
+		// encode config to json
+		configBytes, err := json.Marshal(config)
+		if err != nil {
+			t.Errorf("Error marshaling config: %s", err.Error())
+			return
+		}
+
+		// decode config from json
+		var config2 Config
+		if err := json.Unmarshal(configBytes, &config2); err != nil {
+			t.Errorf("Error unmarshaling config: %s", err.Error())
+			return
+		}
+
+		// compare config and config2
+		if !config.compare(config2) {
+			t.Errorf("The unmarshaled config is different from the original config")
+			return
+		}
+	})
+
 }

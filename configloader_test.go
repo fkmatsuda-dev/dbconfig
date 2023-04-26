@@ -1,3 +1,25 @@
+/*
+ * © 2023 fkmatsuda
+
+ * This file is licensed under the terms of the MIT license. Permission is hereby
+ * granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy, modify,
+ * merge, publish, and/or distribute copies of the Software, and to permit persons
+ * to whom the Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS," WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ */
+
 package dbconfig
 
 import (
@@ -134,6 +156,42 @@ func TestLoadConfig(t *testing.T) {
 
 	})
 
+	// Test invalid configuration file
+	t.Run("Test invalid configuration file", func(t *testing.T) {
+		dbconfigstr := `{
+			"type": "invalid",
+			"host": "localhost",
+			"port": 5432,
+			"user": "postgres",
+			"password": "postgres",
+			"database": "postgres",
+			"ssl": {
+				"mode": "verify-full",
+				"ca": "ca.crt",
+				"key": "client.key",
+				"cert": "client.crt"
+			}
+		}`
+
+		// write the json configuration file
+		err := files.WriteFile(dirName+"/dbconfig.json", dbconfigstr)
+		if err != nil {
+			t.Errorf("Error writing json configuration file: %s", err.Error())
+			return
+		}
+
+		// load the configuration file
+		_, err = LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+
+		// delete the json configuration file
+		err = os.Remove(dirName + "/dbconfig.json")
+
+	})
+
 	// Test load by environment variables
 	t.Run("Test load by environment variables", func(t *testing.T) {
 		t.Setenv("DB_TYPE", "POSTGRESQL")
@@ -258,6 +316,25 @@ func TestLoadConfig(t *testing.T) {
 		// compare the loaded configuration with the sample Config struct
 		if !configWithSSL.compare(loadedConfig) {
 			t.Errorf("The loaded configuration is different from the sample configuration")
+			return
+		}
+
+	})
+
+	// Test load by environment variables with invalid db type
+	t.Run("Test load by environment variables with invalid db type", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "INVALID")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
 			return
 		}
 
