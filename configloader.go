@@ -163,6 +163,8 @@ func loadEnvConfig() (Config, error) {
 			sslConfig.Key = sslKey
 		}
 		config.SSL = &sslConfig
+	} else {
+		config.SSL = nil
 	}
 
 	return config, nil

@@ -192,6 +192,58 @@ func TestLoadConfig(t *testing.T) {
 
 	})
 
+	// Test json configuration file with invalid db type
+	t.Run("Test json configuration file with invalid db type", func(t *testing.T) {
+		dbconfigstr := `{
+			"type": "invalid",
+			"host": "localhost",
+			"port": 5432,
+			"user": "postgres",
+			"password": "postgres",
+			"database": "postgres"
+		}`
+
+		// write the json configuration file
+		err := files.WriteFile(dirName+"/dbconfig.json", dbconfigstr)
+		if err != nil {
+			t.Errorf("Error writing json configuration file: %s", err.Error())
+			return
+		}
+	})
+
+	// Test json configuration file with invalid ssl mode
+	t.Run("Test json configuration file with invalid ssl mode", func(t *testing.T) {
+		dbconfigstr := `{
+			"type": "POSTGRESQL",
+			"host": "localhost",
+			"port": 5432,
+			"user": "postgres",
+			"password": "postgres",
+			"database": "postgres",
+			"ssl": {
+				"mode": "invalid",
+				"ca": "ca.crt",
+			},`
+
+		// write the json configuration file
+		err := files.WriteFile(dirName+"/dbconfig.json", dbconfigstr)
+		if err != nil {
+			t.Errorf("Error writing json configuration file: %s", err.Error())
+			return
+		}
+
+		// load the configuration file
+		_, err = LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+
+		// delete the json configuration file
+		err = os.Remove(dirName + "/dbconfig.json")
+
+	})
+
 	// Test load by environment variables
 	t.Run("Test load by environment variables", func(t *testing.T) {
 		t.Setenv("DB_TYPE", "POSTGRESQL")
@@ -338,6 +390,261 @@ func TestLoadConfig(t *testing.T) {
 			return
 		}
 
+	})
+
+	// Test load by environment variables with invalid ssl mode
+	t.Run("Test load by environment variables with invalid ssl mode", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "invalid")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables without host
+	t.Run("Test load by environment variables without host", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+
+	})
+
+	// Test load by environment variables without port
+	t.Run("Test load by environment variables without port", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		loadedConfig, err := LoadConfig(dirName)
+		if err != nil {
+			t.Errorf("Error expected")
+			return
+		}
+
+		// Check if the default port was set
+		if loadedConfig.Port != 5432 {
+			t.Errorf("Error expected")
+			return
+
+		}
+
+	})
+
+	// Test load by environment variables with invalid port
+	t.Run("Test load by environment variables with invalid port", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "INVALID")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables without user
+	t.Run("Test load by environment variables without user", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+
+	})
+
+	// Test load by environment variables without password
+	t.Run("Test load by environment variables without password", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables without database
+	t.Run("Test load by environment variables without database", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_SSL_MODE", "disable")
+
+		// load the configuration file
+		loadedConfig, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+
+		// SSL config should be set to null
+		if loadedConfig.SSL != nil {
+			t.Errorf("SSL config should be null")
+			return
+		}
+	})
+
+	// Test load by environment variables without ssl mode
+	t.Run("Test load by environment variables without ssl mode", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "")
+
+		// load the configuration file
+		loadedConfig, err := LoadConfig(dirName)
+		if err != nil {
+			t.Errorf("Error not expected")
+			return
+		}
+
+		// SSL config should be set to null
+		if loadedConfig.SSL != nil {
+			t.Errorf("SSL config should be null")
+			return
+		}
+	})
+
+	// Test load by environment variables with invalid ssl mode
+	t.Run("Test load by environment variables with invalid ssl mode", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "invalid")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables with invalid ssl verify ca and without ssl ca file
+	t.Run("Test load by environment variables with invalid ssl verify ca and without ssl ca file", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "verify-ca")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables with invalid ssl verify full and without ssl ca file
+	t.Run("Test load by environment variables with invalid ssl verify full and without ssl ca file", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "verify-full")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables with invalid ssl verify full and without ssl cert file
+	t.Run("Test load by environment variables with invalid ssl verify full and without ssl cert file", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "verify-full")
+		t.Setenv("DB_SSL_CA", "ca.crt")
+		t.Setenv("DB_SSL_KEY", "client.key")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
+	})
+
+	// Test load by environment variables with invalid ssl verify full and without ssl key file
+	t.Run("Test load by environment variables with invalid ssl verify full and without ssl key file", func(t *testing.T) {
+		t.Setenv("DB_TYPE", "POSTGRESQL")
+		t.Setenv("DB_HOST", "localhost")
+		t.Setenv("DB_PORT", "5432")
+		t.Setenv("DB_USER", "postgres")
+		t.Setenv("DB_PASSWORD", "postgres")
+		t.Setenv("DB_DATABASE", "postgres")
+		t.Setenv("DB_SSL_MODE", "verify-full")
+		t.Setenv("DB_SSL_CA", "ca.crt")
+		t.Setenv("DB_SSL_CERT", "client.crt")
+
+		// load the configuration file
+		_, err := LoadConfig(dirName)
+		if err == nil {
+			t.Errorf("Error expected")
+			return
+		}
 	})
 
 }
