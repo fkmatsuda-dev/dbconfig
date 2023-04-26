@@ -44,7 +44,7 @@ func LoadConfig(path string) (Config, error) {
 	if err != nil {
 		if errorex.IS(err, ErrorCodeConfigFileNotFound) {
 			// try to load the environment variables
-			return loadEnvConfig()
+			return LoadFromEnv()
 		}
 		return Config{}, err
 	}
@@ -67,7 +67,8 @@ func loadConfigFile(file string) (Config, error) {
 	return config, nil
 }
 
-func loadEnvConfig() (Config, error) {
+// LoadFromEnv loads the database settings from the environment variables and returns a struct Config
+func LoadFromEnv() (Config, error) {
 	config := Config{}
 	// load the database type
 	strType, chk := env.ChkString("DB_TYPE")
