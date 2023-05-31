@@ -25,10 +25,11 @@ package dbconfig
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+
 	"github.com/fkmatsuda-dev/commons/errorex"
 	"github.com/fkmatsuda-dev/commons/files"
 	"github.com/fkmatsuda-dev/env"
-	"os"
 )
 
 var (
@@ -56,16 +57,29 @@ func loadConfigFile(file string) (Config, error) {
 	// read the configuration file
 	fileContent, err := files.ReadFile(file)
 	if err != nil {
-		return Config{}, errorex.New(ErrorCodeConfigFileNotLoaded, "Configuration file not loaded", err.Error())
+		return Config{}, errorex.New(
+			ErrorCodeConfigFileNotLoaded,
+			"Configuration file not loaded",
+			err.Error(),
+		)
 	}
 	// Unmarshal the configuration file
 	var config Config
 	err = json.Unmarshal([]byte(fileContent), &config)
 	if err != nil {
-		return Config{}, errorex.New(ErrorCodeConfigFileParseError, "Configuration file parse error", err.Error())
+		return Config{}, errorex.New(
+			ErrorCodeConfigFileParseError,
+			"Configuration file parse error",
+			err.Error(),
+		)
 	}
 	return config, nil
 }
+
+const (
+	configurationParseError = "Environment configuration parse error"
+	envNotLoaded            = "Environment configuration not loaded"
+)
 
 // LoadFromEnv loads the database settings from the environment variables and returns a struct Config
 func LoadFromEnv() (Config, error) {
@@ -73,46 +87,70 @@ func LoadFromEnv() (Config, error) {
 	// load the database type
 	strType, chk := env.ChkString("DB_TYPE")
 	if !chk {
-		return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_TYPE environment variable not found")
+		return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, envNotLoaded, "DB_TYPE environment variable not found")
 	}
 	dbType, err := ParseDbType(strType)
 	if err != nil {
-		return Config{}, errorex.New(ErrorCodeEnvConfigParseError, "Environment configuration parse error", err.Error())
+		return Config{}, errorex.New(ErrorCodeEnvConfigParseError, configurationParseError, err.Error())
 	}
 
 	// load the database host
 	dbHost, chk := env.ChkString("DB_HOST")
 	if !chk {
-		return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_HOST environment variable not found")
+		return Config{}, errorex.New(
+			ErrorCodeEnvConfigNotLoaded,
+			envNotLoaded,
+			"DB_HOST environment variable not found",
+		)
 	}
 
 	// load the database port
-	dbPort, chk, err := env.ChkInt("DB_PORT")
+	dbPort, err := env.Int("DB_PORT", 5432)
 	if err != nil {
-		return Config{}, errorex.New(ErrorCodeEnvConfigParseError, "Environment configuration parse error", err.Error())
-	}
-	if !chk {
-		dbPort = 5432
+		return Config{}, errorex.New(ErrorCodeEnvConfigParseError, configurationParseError, err.Error())
 	}
 
 	// load the database name
 	dbDatabase, chk := env.ChkString("DB_DATABASE")
 	if !chk {
-		return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_DATABASE environment variable not found")
+		return Config{}, errorex.New(
+			ErrorCodeEnvConfigNotLoaded,
+			envNotLoaded,
+			"DB_DATABASE environment variable not found",
+		)
 	}
 
 	// load the database user
 	dbUser, chk := env.ChkString("DB_USER")
 	if !chk {
-		return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_USER environment variable not found")
+		return Config{}, errorex.New(
+			ErrorCodeEnvConfigNotLoaded,
+			envNotLoaded,
+			"DB_USER environment variable not found",
+		)
 	}
 
 	// load the database password
 	dbPassword, chk := env.ChkString("DB_PASSWORD")
 	if !chk {
-		return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_PASSWORD environment variable not found")
+		return Config{}, errorex.New(
+			ErrorCodeEnvConfigNotLoaded,
+			envNotLoaded,
+			"DB_PASSWORD environment variable not found",
+		)
 	}
+	// fill the configuration struct
+	config.Type = dbType
+	config.Host = dbHost
+	config.Port = uint16(dbPort)
+	config.Database = dbDatabase
+	config.User = dbUser
+	config.Password = dbPassword
 
+	return loadSSL(chk, err, config)
+}
+
+func loadSSL(chk bool, err error, config Config) (Config, error) {
 	// load the database ssl mode
 	strSSLMode, chk := env.ChkString("DB_SSL_MODE")
 	if !chk {
@@ -120,7 +158,7 @@ func LoadFromEnv() (Config, error) {
 	}
 	sslMode, err := ParseSSLMode(strSSLMode)
 	if err != nil {
-		return Config{}, errorex.New(ErrorCodeEnvConfigParseError, "Environment configuration parse error", err.Error())
+		return Config{}, errorex.New(ErrorCodeEnvConfigParseError, configurationParseError, err.Error())
 	}
 
 	// if ssl mode is verify-full, load the ssl certificate and key
@@ -128,11 +166,19 @@ func LoadFromEnv() (Config, error) {
 	if sslMode == SSLModeVerifyFull {
 		sslCert, chk = env.ChkString("DB_SSL_CERT")
 		if !chk {
-			return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_SSL_CERT environment variable not found")
+			return Config{}, errorex.New(
+				ErrorCodeEnvConfigNotLoaded,
+				envNotLoaded,
+				"DB_SSL_CERT environment variable not found",
+			)
 		}
 		sslKey, chk = env.ChkString("DB_SSL_KEY")
 		if !chk {
-			return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_SSL_KEY environment variable not found")
+			return Config{}, errorex.New(
+				ErrorCodeEnvConfigNotLoaded,
+				envNotLoaded,
+				"DB_SSL_KEY environment variable not found",
+			)
 		}
 	}
 
@@ -141,17 +187,13 @@ func LoadFromEnv() (Config, error) {
 	if sslMode == SSLModeVerifyCA || sslMode == SSLModeVerifyFull {
 		sslCa, chk = env.ChkString("DB_SSL_CA")
 		if !chk {
-			return Config{}, errorex.New(ErrorCodeEnvConfigNotLoaded, "Environment configuration not loaded", "DB_SSL_CA environment variable not found")
+			return Config{}, errorex.New(
+				ErrorCodeEnvConfigNotLoaded,
+				envNotLoaded,
+				"DB_SSL_CA environment variable not found",
+			)
 		}
 	}
-
-	// fill the configuration struct
-	config.Type = dbType
-	config.Host = dbHost
-	config.Port = uint16(dbPort)
-	config.Database = dbDatabase
-	config.User = dbUser
-	config.Password = dbPassword
 
 	// if ssl mode is verify-ca or verify-full, fill the ssl struct
 	if sslMode == SSLModeVerifyCA || sslMode == SSLModeVerifyFull {
