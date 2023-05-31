@@ -24,7 +24,8 @@ To use dbconfig, you can load the configuration from a JSON file or directly fro
     "key": "client.key",
     "cert": "client.crt"
   }
-}```
+}
+```
 You can also set environment variables for each database configuration parmeter, following the naming convention DB_<PARAMETER>. For example, to set the host and port, you would set DB_HOST and DB_PORT, to set SSL parameters you can use DB_SSL_<PARAMETER>.
 
 After loading the configuration, you can use it in your project to connect to the database. Here is an example of how to use dbconfig to get the MySQL database connection configurations:
